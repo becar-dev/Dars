@@ -1,27 +1,21 @@
-# PrintShop Micro-CRM Telegram Bot
+# Printshop + Stationery Mini-CRM Telegram Bot
 
-A local-only Telegram bot for a small print shop / stationery business to log every customer interaction and get quick business stats.
+Localda ishlaydigan aiogram 3.x bot. Yangi arxitektura: `orders` + `order_items` + katalog jadvallari.
 
-## Features
+## Asosiy imkoniyatlar
 
-- Inline-menu start dashboard with quick actions:
-  - ➕ Add New Customer
-  - 📊 Today's Statistics
-  - 📅 Weekly Statistics
-  - 📦 Service Report
-- FSM flow for customer logging:
-  1. Service type selection
-  2. Customer status selection
-  3. Numeric order amount input (0 allowed)
-- SQLite (`crm.db`) persistence (auto-created locally)
-- Ready-to-use reports:
-  - Today's visitors, real orders, inquiries, revenue
-  - Last 7 days summary + most requested service
-  - Service report with requested count, actual orders, and revenue per service
+- Inline menyu (uz-Latn):
+  - ➕ Yangi mijoz
+  - 📊 Bugungi statistika
+  - 📅 Haftalik statistika
+  - 📦 Hisobot (xizmat/mahsulot)
+- Bitta buyurtmaga bir nechta item qo‘shish (FSM)
+- Xizmat va kantselyariya katalogi
+- Adminlar katalogga yangi item qo‘sha oladi (`ADMIN_IDS`)
+- `TelegramBadRequest: message is not modified` xatosi xavfsiz ignor qilinadi
+- SQLite bazasi lokal faylda (`crm.db`)
 
----
-
-## Project structure
+## Loyiha tuzilmasi
 
 ```text
 Dars/
@@ -37,85 +31,87 @@ Dars/
 │   │   └── customer_flow.py
 │   └── utils/
 │       └── middlewares.py
+├── migrations/
+│   └── 001_orders_refactor.sql
 ├── .env.example
-├── .gitignore
 ├── main.py
 └── requirements.txt
 ```
 
----
+## DB sxema
 
-## Database schema
-
-Table: `customers_log`
-
+### `orders`
 - `id INTEGER PRIMARY KEY AUTOINCREMENT`
-- `date DATETIME DEFAULT CURRENT_TIMESTAMP`
-- `service TEXT`
-- `status TEXT`
-- `amount INTEGER`
+- `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`
+- `status TEXT` (`asked_price|ordered|urgent|returned`)
+- `customer_type TEXT` (`walk_in|returning`)
+- `total_amount INTEGER DEFAULT 0`
 
----
+### `order_items`
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `order_id INTEGER NOT NULL`
+- `category TEXT` (`service|stationery`)
+- `item_name TEXT NOT NULL`
+- `quantity INTEGER NOT NULL`
+- `unit_price INTEGER NOT NULL`
+- `line_total INTEGER NOT NULL`
+- `FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE`
 
-## Local run instructions (step-by-step)
+### `catalog_services`
+### `catalog_products`
+- `id INTEGER PRIMARY KEY AUTOINCREMENT`
+- `name TEXT UNIQUE NOT NULL`
+- `is_active INTEGER DEFAULT 1`
 
-### 1) Create and activate a virtual environment
+## Migratsiya (eski `customers_log` -> yangi sxema)
 
-**Linux/macOS**
+1. Dastur ishga tushganda `Database._initialize()` yangi jadvallarni yaratadi.
+2. Agar `customers_log` mavjud bo‘lsa va hali migratsiya qilinmagan bo‘lsa:
+   - Har bir eski qator `orders` ga bitta order bo‘lib yoziladi.
+   - Har bir orderga `order_items` ga bitta item yoziladi (`category='service'`).
+   - `migration_meta.legacy_customers_log_migrated=1` belgisi qo‘yiladi.
+3. Eski `customers_log` jadvali saqlab qolinadi (audit/backward check uchun).
+4. Qo‘shimcha SQL fayl: `migrations/001_orders_refactor.sql`.
+
+## Ishga tushirish (Python 3.12+)
+
+1) Virtual environment:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
-**Windows (PowerShell)**
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-### 2) Install dependencies
+2) Kutubxonalar:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) Configure token
-
-1. Copy `.env.example` to `.env`
-2. Put your Telegram bot token into `BOT_TOKEN`
+3) `.env` tayyorlash:
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit `.env`:
+`.env` ichida:
 
 ```env
 BOT_TOKEN=123456:YOUR_TELEGRAM_TOKEN
+DB_PATH=crm.db
+ADMIN_IDS=123456789
 ```
 
-### 4) Run
+4) Botni ishga tushirish:
 
 ```bash
 python main.py
 ```
 
-After setting a valid token, the bot starts immediately and creates `crm.db` automatically in the project root if it doesn't exist.
+## Validatsiya qoidalari
 
----
-
-## Input validation behavior
-
-When entering amount in step 3:
-
-- ✅ only non-negative integer values are accepted (`0`, `150`, `2000`, ...)
-- ❌ any non-numeric input is rejected with warning and re-prompt
-
----
-
-## Notes
-
-- This project is intentionally local-first and serverless.
-- `crm.db` is excluded from git and remains on your PC.
+- Miqdor/narx maydonlari faqat raqam
+- Manfiy qiymat taqiqlanadi
+- `quantity` kamida `1`
+- `0` qiymat faqat `asked_price` holatida ruxsat etiladi
+- qolgan holatlarda 0 qiymat tanlansa statusni o'zgartirish talab qilinadi

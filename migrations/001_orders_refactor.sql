@@ -1,5 +1,7 @@
 -- Migration: legacy customers_log -> orders + order_items + catalogs
--- Safe to run multiple times because of IF NOT EXISTS and INSERT OR IGNORE patterns.
+-- This script is idempotent for schema creation.
+-- Data migration from customers_log is intentionally executed by app code
+-- (Database._migrate_from_legacy_if_exists) so it can safely check table existence.
 
 PRAGMA foreign_keys = ON;
 
@@ -53,17 +55,14 @@ INSERT OR IGNORE INTO catalog_products (name, is_active) VALUES
 ('Qog‘oz', 1),
 ('Fayl papka', 1);
 
--- Data migration block (run once)
--- 1) rows from customers_log become one order + one order_item
--- 2) original customers_log table is kept for backward audit purposes
-
-WITH todo AS (
-    SELECT date, service, status, amount
-    FROM customers_log
-    WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='customers_log')
-)
-SELECT 1;
-
--- NOTE: SQLite SQL-only migration of row-by-row order->items mapping is usually
--- done from application code for reliability. The app also performs this migration
--- transactionally and marks migration_meta('legacy_customers_log_migrated')='1'.
+-- Data migration steps (performed by application code):
+-- 1) Read rows from legacy customers_log.
+-- 2) Map status text:
+--      Asked price only   -> asked_price
+--      Placed order       -> ordered
+--      Urgent client      -> urgent
+--      Returning customer -> returned
+-- 3) Insert one row into orders per legacy row.
+-- 4) Insert one service row into order_items per order (quantity=1, unit_price=line_total=amount>=0).
+-- 5) Set migration_meta('legacy_customers_log_migrated') = '1'.
+-- 6) Keep customers_log table unchanged for audit/backward compatibility.
