@@ -1,18 +1,11 @@
-"""FSM states for multi-item order logging flow."""
+"""FSM states for customer logging conversation."""
 
 from aiogram.fsm.state import State, StatesGroup
 
 
 class CustomerLogStates(StatesGroup):
-    """Step-by-step flow to create an order with multiple items."""
+    """Step-by-step flow to save one customer interaction."""
 
-    choosing_category = State()
-    choosing_catalog_item = State()
-    adding_catalog_item_name = State()
-
-    entering_quantity = State()
-    entering_unit_price = State()
-    entering_total_price = State()
-
+    choosing_service = State()
     choosing_status = State()
-    post_item_action = State()
+    entering_amount = State()

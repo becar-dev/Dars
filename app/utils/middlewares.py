@@ -10,11 +10,10 @@ from app.db.database import Database
 
 
 class DatabaseMiddleware(BaseMiddleware):
-    """Inject shared runtime objects into handler data."""
+    """Inject a shared Database instance into handler data."""
 
-    def __init__(self, db: Database, admin_ids: set[int] | None = None) -> None:
+    def __init__(self, db: Database) -> None:
         self.db = db
-        self.admin_ids = admin_ids or set()
 
     async def __call__(
         self,
@@ -23,5 +22,4 @@ class DatabaseMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         data["db"] = self.db
-        data["admin_ids"] = self.admin_ids
         return await handler(event, data)

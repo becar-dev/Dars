@@ -28,7 +28,7 @@ async def run_bot() -> None:
     dispatcher = Dispatcher()
 
     # Make database instance available in all message and callback handlers.
-    database_middleware = DatabaseMiddleware(db=db, admin_ids=settings.admin_ids or set())
+    database_middleware = DatabaseMiddleware(db=db)
     dispatcher.message.middleware(database_middleware)
     dispatcher.callback_query.middleware(database_middleware)
 

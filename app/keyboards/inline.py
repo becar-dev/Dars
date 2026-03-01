@@ -1,72 +1,58 @@
-"""Inline keyboard builders used by bot handlers (Uzbek UI)."""
+"""Inline keyboard builders used by bot handlers."""
 
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-MENU_BUTTONS = [
-    ("➕ Yangi mijoz", "menu:new_customer"),
-    ("📊 Bugungi statistika", "menu:today_stats"),
-    ("📅 Haftalik statistika", "menu:weekly_stats"),
-    ("📦 Hisobot (xizmat/mahsulot)", "menu:service_report"),
+MAIN_MENU_BUTTONS = [
+    ("➕ Add New Customer", "menu:add_customer"),
+    ("📊 Today's Statistics", "menu:today_stats"),
+    ("📅 Weekly Statistics", "menu:weekly_stats"),
+    ("📦 Service Report", "menu:service_report"),
 ]
 
-STATUS_BUTTONS = [
-    ("Faqat narx so‘radi", "asked_price"),
-    ("Buyurtma berdi", "ordered"),
-    ("Shoshildi", "urgent"),
-    ("Qaytib keldi", "returned"),
+SERVICES = [
+    "Business Card",
+    "Banner",
+    "Lamination",
+    "Copy/Print",
+    "Scanning",
+    "Design",
+    "Stationery Sale",
+]
+
+CUSTOMER_STATUSES = [
+    "Asked price only",
+    "Placed order",
+    "Urgent client",
+    "Returning customer",
 ]
 
 
 def build_main_menu_keyboard() -> InlineKeyboardMarkup:
+    """Create menu keyboard shown on /start and after each action."""
+
     builder = InlineKeyboardBuilder()
-    for text, callback_data in MENU_BUTTONS:
+    for text, callback_data in MAIN_MENU_BUTTONS:
         builder.button(text=text, callback_data=callback_data)
     builder.adjust(1)
     return builder.as_markup()
 
 
-def build_category_keyboard() -> InlineKeyboardMarkup:
+def build_services_keyboard() -> InlineKeyboardMarkup:
+    """Create keyboard with available print shop services."""
+
     builder = InlineKeyboardBuilder()
-    builder.button(text="🖨 Xizmat", callback_data="category:service")
-    builder.button(text="🗂 Kantselyariya", callback_data="category:stationery")
-    builder.button(text="❌ Bekor qilish", callback_data="flow:cancel")
-    builder.adjust(2, 1)
-    return builder.as_markup()
-
-
-def build_catalog_keyboard(
-    category: str,
-    items: list[str],
-    can_add: bool,
-) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for item in items:
-        builder.button(text=item, callback_data=f"pick_item:{item}")
-
-    if can_add:
-        add_text = "➕ Xizmat qo‘shish" if category == "service" else "➕ Mahsulot qo‘shish"
-        builder.button(text=add_text, callback_data="catalog:add")
-
-    builder.button(text="⬅️ Orqaga", callback_data="flow:back_to_category")
-    builder.button(text="❌ Bekor qilish", callback_data="flow:cancel")
+    for service in SERVICES:
+        builder.button(text=service, callback_data=f"service:{service}")
     builder.adjust(2)
     return builder.as_markup()
 
 
-def build_status_keyboard() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for text, value in STATUS_BUTTONS:
-        builder.button(text=text, callback_data=f"status:{value}")
-    builder.button(text="❌ Bekor qilish", callback_data="flow:cancel")
-    builder.adjust(1)
-    return builder.as_markup()
+def build_statuses_keyboard() -> InlineKeyboardMarkup:
+    """Create keyboard for selecting customer interaction status."""
 
-
-def build_post_item_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="➕ Yana qo‘shish", callback_data="flow:add_another")
-    builder.button(text="✅ Yakunlash", callback_data="flow:finish")
-    builder.button(text="❌ Bekor qilish", callback_data="flow:cancel")
+    for status in CUSTOMER_STATUSES:
+        builder.button(text=status, callback_data=f"status:{status}")
     builder.adjust(1)
     return builder.as_markup()
