@@ -1,4 +1,4 @@
-"""Application entry point for PrintShop Micro-CRM Telegram Bot."""
+"""Bot entrypoint."""
 
 from __future__ import annotations
 
@@ -12,30 +12,38 @@ from aiogram.enums import ParseMode
 from app.config import load_settings
 from app.db.database import Database
 from app.handlers.bot import router as bot_router
+from app.utils.daily_reporter import run_daily_report_loop
 from app.utils.middlewares import DatabaseMiddleware
 
 
 async def run_bot() -> None:
-    """Create bot objects, register routes, and start polling."""
-
     settings = load_settings()
-    db = Database(settings.db_path)
+    db = Database(settings.database_url)
+    await db.connect()
+    await db.initialize()
 
     bot = Bot(
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
-    dispatcher = Dispatcher()
+    dp = Dispatcher()
 
-    # Make database instance available in all message and callback handlers.
-    database_middleware = DatabaseMiddleware(db=db, admin_ids=settings.admin_ids or set())
-    dispatcher.message.middleware(database_middleware)
-    dispatcher.callback_query.middleware(database_middleware)
+    mw = DatabaseMiddleware(db=db, admin_ids=settings.admin_ids)
+    dp.message.middleware(mw)
+    dp.callback_query.middleware(mw)
 
-    dispatcher.include_router(bot_router)
+    dp.include_router(bot_router)
 
-    logging.info("Bot is starting polling...")
-    await dispatcher.start_polling(bot)
+    daily_task = asyncio.create_task(
+        run_daily_report_loop(bot=bot, db=db, admin_ids=settings.admin_ids)
+    )
+
+    logging.info("Bot ishga tushdi")
+    try:
+        await dp.start_polling(bot)
+    finally:
+        daily_task.cancel()
+        await db.close()
 
 
 if __name__ == "__main__":

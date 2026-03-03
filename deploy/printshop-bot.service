@@ -1,0 +1,18 @@
+[Unit]
+Description=Printshop Mini-CRM Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/printshop-bot
+EnvironmentFile=/opt/printshop-bot/.env
+ExecStart=/opt/printshop-bot/.venv/bin/python main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
