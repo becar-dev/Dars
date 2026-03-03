@@ -1,3 +1,6 @@
 aiogram==3.13.1
 python-dotenv==1.0.1
 asyncpg==0.30.0
+pip>=24.0
+setuptools>=70.0
+wheel>=0.43.0
